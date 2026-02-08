@@ -1,5 +1,6 @@
 import express from 'express';
 import { prisma } from './lib/prisma.js';
+import { Prisma } from '@prisma/client';
 
 const app = express();
 
@@ -59,8 +60,8 @@ app.delete('/trips/:id', async(req, res) => {
 
         res.status(200).json(trip);
     } catch (error) {
-        console.error("Error retrieving trip from database:", error);
-        res.status(500).send("Error retrieving Trip");
+        console.error("Error deleting trip from database:", error);
+        res.status(500).send("Error deleting Trip");
     }
 });
 
@@ -87,6 +88,68 @@ app.post('/trips', async(req, res) => {
     } catch (error) {
         console.error("Error saving trip to database:", error);
         res.status(500).send("Error creating Trip");
+    }
+});
+
+app.post('/trips/update', async(req, res) => {
+    try {
+        const {id, name, description, startDate, endDate} = req.body;
+
+        const updateData: Prisma.TripUpdateInput = {};
+
+        if (name) updateData.name = name;
+        if (description) updateData.description = description;
+        if (startDate) updateData.startDate = new Date(startDate);
+        if (endDate) updateData.endDate = new Date(endDate);
+
+        if (startDate && endDate) {
+            const start = new Date(startDate as string);
+            const end = new Date(endDate as string);
+
+            if (start > end) {
+                return res.status(400).send("End date cannot be before Start date.");
+            }
+        }
+    
+        const newTrip = await prisma.trip.update({
+            where: { id },
+            data: updateData
+        });
+
+        res.status(200).json(newTrip);
+    } catch (error) {
+        console.error("Error updating trip:", error);
+        res.status(500).send("Error updating Trip");
+    }
+});
+
+app.post('/trips/location/create', async(req, res) => {
+    try {
+        const {tripId, name, latitude, longitude, dayIndex} = req.body;
+
+        if (!tripId) return res.status(400).send("tripId is required.");
+        if (latitude === undefined || longitude === undefined) {
+            return res.status(400).send("Coordinates are required.");
+        }
+
+        const newLocation = await prisma.location.create({
+            data: {
+                name: name || "Unnamed Location",
+                latitude, 
+                longitude,
+                dayIndex,
+                trip: {
+                    connect: {id: tripId}
+                }
+            }
+            
+        });
+
+
+        res.status(200).json(newLocation);
+    } catch (error) {
+        console.error("Error creation location:", error);
+        res.status(500).send("Error creating Location");
     }
 });
 
