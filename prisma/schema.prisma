@@ -5,10 +5,31 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+model Trip {
+  id String @id @default(uuid())
+  name String
+  description String
+  startDate DateTime
+  endDate DateTime
+  createdAt DateTime @default(now())
+  locations Location[]
+}
+
+model Location {
+  id String @id @default(uuid())
+  name String
+  latitude Float
+  longitude Float
+  tripId String
+  trip Trip @relation(fields: [tripId], references: [id])
+
+  dayIndex Int?
+  sortOrder Int @default(0)
 }
