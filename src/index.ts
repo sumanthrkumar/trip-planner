@@ -20,6 +20,50 @@ app.get('/dbCheck', async(req, res) => {
     
 });
 
+app.get('/trips/:id', async(req, res) => {
+    const id = req.params
+    try {
+        const trip = await prisma.trip.findUnique({
+            where: id,
+            include: {
+                locations: {
+                    orderBy: {
+                        dayIndex: 'asc'
+                    }
+                }
+            }
+        });
+
+        if (!trip) {
+            return res.status(404).send("Trip not found!");
+        }
+
+        res.status(200).json(trip);
+    } catch (error) {
+        console.error("Error retrieving trip from database:", error);
+        res.status(500).send("Error retrieving Trip");
+    }
+});
+
+app.delete('/trips/:id', async(req, res) => {
+    const id = req.params
+    try {
+        const trip = await prisma.trip.delete({
+            where: id,
+            
+        });
+
+        if (!trip) {
+            return res.status(404).send("Trip not found!");
+        }
+
+        res.status(200).json(trip);
+    } catch (error) {
+        console.error("Error retrieving trip from database:", error);
+        res.status(500).send("Error retrieving Trip");
+    }
+});
+
 app.post('/trips', async(req, res) => {
     try {
         const {name, description, startDate, endDate, locations} = req.body;
@@ -40,9 +84,6 @@ app.post('/trips', async(req, res) => {
         });
 
         res.status(201).json(newTrip);
-
-        
-
     } catch (error) {
         console.error("Error saving trip to database:", error);
         res.status(500).send("Error creating Trip");

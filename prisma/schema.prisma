@@ -28,7 +28,7 @@ model Location {
   latitude Float
   longitude Float
   tripId String
-  trip Trip @relation(fields: [tripId], references: [id])
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
 
   dayIndex Int?
   sortOrder Int @default(0)
