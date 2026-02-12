@@ -25,3 +25,5 @@ app.get('/dbCheck', async(req, res) => {
 });
 
 app.listen(4000, () => console.log("Alive on port 4000"));
+
+export default app;
