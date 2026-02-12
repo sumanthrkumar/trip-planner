@@ -1,14 +1,16 @@
 import { Router } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
+import { CreateTripSchema, UpdateTripSchema } from '../schemas/trip.schemas.js';
+import { validate } from '../middleware/validate.js';
 
 const router = Router();
 
 router.get("/:id", async(req, res) => {
-    const id = req.params
+    const { id } = req.params
     try {
         const trip = await prisma.trip.findUnique({
-            where: id,
+            where: { id },
             include: {
                 locations: {
                     orderBy: [
@@ -30,7 +32,7 @@ router.get("/:id", async(req, res) => {
     }
 });
 
-router.post("/", async(req, res) => {
+router.post("/", validate(CreateTripSchema), async(req, res) => {
     try {
         const {name, description, startDate, endDate, locations} = req.body;
 
@@ -56,45 +58,42 @@ router.post("/", async(req, res) => {
     }    
 });
 
-router.post("/trips/update", async(req, res) => {
+router.post("/update", validate(UpdateTripSchema), async(req, res) => {
     try {
-        const {id, name, description, startDate, endDate} = req.body;
+        const {id, locations, ...rest} = req.body;
 
-        const updateData: Prisma.TripUpdateInput = {};
+        const updateData: Prisma.TripUpdateInput = {
+            ...rest,
+            startDate: rest.startDate ? new Date(rest.startDate) : undefined,
+            endDate: rest.endDate ? new Date(rest.endDate) : undefined,
+        };
 
-        if (name) updateData.name = name;
-        if (description) updateData.description = description;
-        if (startDate) updateData.startDate = new Date(startDate);
-        if (endDate) updateData.endDate = new Date(endDate);
-
-        if (startDate && endDate) {
-            const start = new Date(startDate as string);
-            const end = new Date(endDate as string);
-
-            if (start > end) {
-                return res.status(400).send("End date cannot be before Start date.");
-            }
+        if (locations) {
+            updateData.locations = {
+                deleteMany: {}, 
+                create: locations 
+            };
         }
-    
-        const newTrip = await prisma.trip.update({
+
+        const updatedTrip = await prisma.trip.update({
             where: { id },
             data: updateData
         });
 
-        res.status(200).json(newTrip);
+        res.status(200).json(updatedTrip);
     } catch (error) {
         console.error("Error updating trip:", error);
         res.status(500).send("Error updating Trip");
     }
 });
 
-router.delete("/trips/:id", async(req, res) => {
-    const id = req.params
+router.delete("/:id", async(req, res) => {
+    const { id } = req.params
     if (!id) return res.status(400).send("Id is needed to delete a trip.");
 
     try {
         const trip = await prisma.trip.delete({
-            where: id,
+            where: { id },
             
         });
 
